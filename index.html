@@ -75,6 +75,10 @@
         .processing-msg { font-size: 15px; font-weight: 500; color: var(--text-main); text-align: center; letter-spacing: 0.3px; }
         .processing-submsg { font-size: 12px; color: var(--text-muted); font-family: monospace; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Unified Custom Informative Success Pop-In Modal Overlay Layout */
+        .alert-pop-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(2, 6, 17, 0.8); z-index: 99999998; justify-content: center; align-items: center; padding: 20px; }
+        .alert-pop-card { background: var(--bg-card); border: 1px solid var(--border); border-top: 4px solid #10b981; width: 100%; max-width: 500px; padding: 30px; border-radius: 12px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.6); }
     </style>
 </head>
 <body>
@@ -86,6 +90,31 @@
             <div class="progress-bar-fill" id="load-bar-fill"></div>
         </div>
         <div class="processing-submsg" id="load-sub-text">Preparing batch matrix buffer...</div>
+    </div>
+
+    <div class="alert-pop-overlay" id="success-alert-pop">
+        <div class="alert-pop-card">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+                <div style="font-size: 24px; background: rgba(16, 185, 129, 0.15); color: #10b981; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; border-radius: 50%;">✓</div>
+                <div>
+                    <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: var(--text-main);">Spreadsheet Upload Successful</h3>
+                    <p style="margin: 2px 0 0 0; color: var(--text-muted); font-size: 12.5px;" id="alert-pop-details-text">Parsed unique transactional lots.</p>
+                </div>
+            </div>
+            
+            <hr style="border: 0; border-top: 1px solid var(--border); margin: 15px 0;">
+
+            <h4 style="margin: 0 0 8px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent);">💡 How to complete your Form 11:</h4>
+            <p style="margin: 0 0 16px 0; color: #cbd5e1; font-size: 13.5px; line-height: 1.5;">
+                All historical E*TRADE transactions have been converted into Euro values using precise daily European Central Bank (ECB) exchange rates. 
+            </p>
+
+            <div style="background: #1e293b; border-left: 4px solid #10b981; padding: 12px 15px; border-radius: 0 8px 8px 0; font-size: 13px; line-height: 1.5; color: #f1f5f9; margin-bottom: 25px;">
+                <strong>Next Step:</strong> Click the green <strong>"📊 Open ROS Form 11 Data Guide"</strong> button sitting at the top-right corner of your dashboard screen. It features an interactive, visual mockup showing you which calculation values to copy into your Form 11.
+            </div>
+
+            <button class="btn" style="background: #10b981; width: 100%; padding: 13px; font-size: 13.5px;" id="close-alert-pop-btn">Got It!</button>
+        </div>
     </div>
 
     <div class="disclaimer-overlay" id="disclaimer-modal">
@@ -139,7 +168,7 @@
             </div>
             <div class="instructions-inner-content">
                 <p style="margin: 0 0 12px 0; font-size: 13.5px; color: var(--text-muted);">
-                    To generate your Irish Revenue Capital Gains compliant output, the system parses the lot specifics from your historical spreadsheet ledger. Follow the steps below to export the file:
+                    To generate your Irish Revenue Capital Gains output, please provide the Gains / Losses report from your E*Trade account. 
                 </p>
                 <ol>
                     <li>Log into your E*TRADE account profile in a web browser.</li>
@@ -193,7 +222,7 @@
     <div class="modal-overlay" id="ros-modal">
         <div class="modal-canvas">
             <div class="modal-header">
-                <span style="font-weight: bold; font-size: 15px;">Revenue ROS Form 11 Input Summary Mockup</span>
+                <span style="font-weight: bold; font-size: 15px;">Official Revenue ROS Form 11 Input Summary Mockup</span>
                 <button class="btn" style="background:#ef4444; color:#fff; padding:6px 14px; margin:0;" id="close-modal-btn">✕ Close Preview</button>
             </div>
             <div class="modal-scroll">
@@ -264,6 +293,9 @@
         const loadMainText = document.getElementById('load-main-text');
         const loadSubText = document.getElementById('load-sub-text');
         const loadBarFill = document.getElementById('load-bar-fill');
+        
+        const successAlertPop = document.getElementById('success-alert-pop');
+        const alertPopDetailsText = document.getElementById('alert-pop-details-text');
 
         document.addEventListener('DOMContentLoaded', () => {
             ipcRenderer.send('get-live-stock-price');
@@ -386,6 +418,13 @@
             
             macroPanel.classList.add('collapsed');
             macroIcon.innerText = "▲ Expand Instructions & Upload Box";
+
+            alertPopDetailsText.innerText = `Successfully parsed and calculated ${payload.totalDisposals} historical sales records.`;
+            successAlertPop.style.display = "flex";
+        });
+
+        document.getElementById('close-alert-pop-btn').addEventListener('click', () => {
+            successAlertPop.style.display = "none";
         });
 
         ipcRenderer.on('processing-error', () => {

@@ -194,8 +194,8 @@ ipcMain.on('process-custom-csv-text', async (event, rawContent) => {
         currentCalculatedRecords = finalCompiledRecords;
         computeTotalsAndRender();
         
+        // Native Windows message dialog completely removed from this execution line block
         mainWindow.webContents.send('progress-tick', { title: "Rendering calculations...", details: "Building ledger map matrix structures...", percent: 100 });
-        dialog.showMessageBox({ type: 'info', message: `Success! Imported ${finalCompiledRecords.length} unique sales lots.` });
 
     } catch (e) {
         mainWindow.webContents.send('processing-error');
@@ -206,7 +206,7 @@ ipcMain.on('process-custom-csv-text', async (event, rawContent) => {
 function createWindow() {
     mainWindow = new BrowserWindow({
         show: false,                 
-        backgroundColor: '#0a1120',  
+        backgroundColor: '#0a1120',   
         resizable: true,
         autoHideMenuBar: true, 
         webPreferences: { 
