@@ -1,6 +1,6 @@
-# Share Tax Helper (Ireland Form 11 Compliance)
+# Share Tax Helper (Ireland Form 11)
 
-Desktop Electron application engineered to convert historical multi-lot MongoDB (MDB) stock plan transactions (RSU / ESPP) into precise Euro calculations for Irish Revenue compliance. It matches daily transactional records with the live historical exchange rate feeds of the European Central Bank (ECB) and outputs a visual field mapping guide designed for the **ROS Form 11** portal.
+Application to simplify gathering the required data for submitting your annual **Form 11** Irish tax return.
 
 ---
 
