@@ -4,7 +4,7 @@ Desktop Electron application engineered to convert historical multi-lot MongoDB 
 
 ---
 
-## 📥 Direct Downloads
+## Direct Downloads
 
 Download the ready-to-run installers directly from our shared team workspace. 
 
@@ -15,7 +15,7 @@ Download the ready-to-run installers directly from our shared team workspace.
 
 ---
 
-## ⚠️ Important Legal Disclaimer
+## ⚠️ Important Legal Disclaimer ⚠️
 **This application is provided completely "as-is", without warranties or guarantees of accuracy, completeness, or regulatory compliance.** Tax laws regarding equity vestings, sell-to-cover metrics, and capital gains are complex and subject to modification. The outputs, data guides, and mockups produced by this utility are for informational guidance and reference only and do not constitute formal financial, legal, or tax advice. You remain entirely responsible for the parameters filed in your tax declarations. It is strongly recommended that you consult a qualified tax advisor or certified public accountant before submitting any official tax returns.
 
 ---
