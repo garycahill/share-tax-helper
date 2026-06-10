@@ -66,9 +66,27 @@
         .disclaimer-card { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-main); width: 100%; max-width: 620px; padding: 35px; border-radius: 12px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); border-top: 4px solid var(--danger); }
         .disclaimer-text { font-size: 14px; line-height: 1.6; color: #cbd5e1; margin: 15px 0 25px 0; }
         .disclaimer-text p { margin: 0 0 12px 0; }
+
+        /* Fixed Overlay Block Settings to Avoid Click Blocking */
+        .processing-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(2, 6, 17, 0.92); z-index: 999999999; flex-direction: column; justify-content: center; align-items: center; gap: 20px; }
+        .spinner-ring { border: 4px solid rgba(255, 255, 255, 0.05); border-radius: 50%; border-top: 4px solid var(--accent); width: 55px; height: 55px; animation: spin 0.9s linear infinite; }
+        .progress-track { width: 320px; height: 6px; background: rgba(255, 255, 255, 0.08); border-radius: 10px; overflow: hidden; margin-top: 5px; border: 1px solid var(--border); }
+        .progress-bar-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #00c653, var(--accent)); transition: width 0.1s ease; }
+        .processing-msg { font-size: 15px; font-weight: 500; color: var(--text-main); text-align: center; letter-spacing: 0.3px; }
+        .processing-submsg { font-size: 12px; color: var(--text-muted); font-family: monospace; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
+
+    <div class="processing-overlay" id="loading-overlay">
+        <div class="spinner-ring"></div>
+        <div class="processing-msg" id="load-main-text">Initializing Engine...</div>
+        <div class="progress-track">
+            <div class="progress-bar-fill" id="load-bar-fill"></div>
+        </div>
+        <div class="processing-submsg" id="load-sub-text">Preparing batch matrix buffer...</div>
+    </div>
 
     <div class="disclaimer-overlay" id="disclaimer-modal">
         <div class="disclaimer-card">
@@ -99,12 +117,12 @@
         <div class="grid-3">
             <div class="tile">
                 <h4>MongoDB Stock (MDB)</h4>
-                <div class="val">MDB : NASDAQ</div>
-                <div class="sub" id="live-price-sub">Current Price: Loading...</div>
+                <div class="val" style="color: var(--accent);">MDB : NASDAQ</div>
+                <div class="sub" id="live-price-sub" style="color: var(--text-main);">Current Price: Loading...</div>
             </div>
             <div class="tile">
                 <h4>Total Capital Gain (EUR)</h4>
-                <div class="val" id="total-gains-metric">€0.00</div>
+                <div class="val" id="total-gains-metric" style="color: var(--accent);">€0.00</div>
                 <div class="sub" style="color: var(--text-muted);">Your total profit converted to EUR</div>
             </div>
             <div class="tile">
@@ -166,7 +184,7 @@
                 </table>
             </div>
             <div class="summary-box">
-                <span>Total Calculated Profit: <span id="summary-gains-text">€0.00</span></span>
+                <span>Total Calculated Profit: <span id="summary-gains-text" style="color: var(--accent);">€0.00</span></span>
                 <span>Annual Irish Tax-Free Limit: <span style="color: var(--accent);">€1,270.00</span></span>
             </div>
         </div>
@@ -175,7 +193,7 @@
     <div class="modal-overlay" id="ros-modal">
         <div class="modal-canvas">
             <div class="modal-header">
-                <span style="font-weight: bold; font-size: 15px;">Official Revenue ROS Form 11 Input Summary Mockup</span>
+                <span style="font-weight: bold; font-size: 15px;">Revenue ROS Form 11 Input Summary Mockup</span>
                 <button class="btn" style="background:#ef4444; color:#fff; padding:6px 14px; margin:0;" id="close-modal-btn">✕ Close Preview</button>
             </div>
             <div class="modal-scroll">
@@ -242,6 +260,11 @@
 
         let globalTotalsCache = { disposposals: 0, consideration: "0.00", gains: "0.00", netTaxable: "0.00", taxDue: "0.00" };
 
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const loadMainText = document.getElementById('load-main-text');
+        const loadSubText = document.getElementById('load-sub-text');
+        const loadBarFill = document.getElementById('load-bar-fill');
+
         document.addEventListener('DOMContentLoaded', () => {
             ipcRenderer.send('get-live-stock-price');
         });
@@ -251,7 +274,7 @@
             if (livePrice === "UNAVAILABLE") {
                 priceSub.innerHTML = `<span class="badge" style="background: rgba(255, 74, 74, 0.15); color: var(--danger); padding: 2px 8px; margin: 0;">⚠️ Price Feed Offline</span>`;
             } else {
-                priceSub.innerText = `Asset Reference Price: ~$${livePrice} USD`;
+                priceSub.innerText = `Current Price: ~$${livePrice} USD`;
             }
         });
 
@@ -284,6 +307,11 @@
         dropZone.addEventListener('drop', (e) => { e.preventDefault(); e.stopPropagation(); dropZone.classList.remove('hover'); if (e.dataTransfer && e.dataTransfer.files.length > 0) processFileObject(e.dataTransfer.files[0]); });
         
         function processFileObject(file) {
+            loadMainText.innerText = "Reading data source...";
+            loadSubText.innerText = "Mapping binary array layout partitions...";
+            loadBarFill.style.width = "5%";
+            loadingOverlay.style.display = "flex";
+
             const reader = new FileReader();
             if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
                 reader.onload = (event) => { ipcRenderer.send('process-excel-buffer', event.target.result); };
@@ -306,11 +334,15 @@
             fileInputFallback.value = ""; 
         });
 
-        ipcRenderer.on('status-update', (event, message) => {
-            document.getElementById('ledger-body').innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--text-muted); padding: 30px;">⏳ ${message}</td></tr>`;
+        ipcRenderer.on('progress-tick', (event, data) => {
+            loadMainText.innerText = data.title;
+            loadSubText.innerText = data.details;
+            loadBarFill.style.width = data.percent + "%";
         });
 
         ipcRenderer.on('render-dashboard', (event, payload) => {
+            loadingOverlay.style.display = "none";
+
             const tbody = document.getElementById('ledger-body');
             tbody.innerHTML = '';
 
@@ -354,6 +386,10 @@
             
             macroPanel.classList.add('collapsed');
             macroIcon.innerText = "▲ Expand Instructions & Upload Box";
+        });
+
+        ipcRenderer.on('processing-error', () => {
+            loadingOverlay.style.display = "none";
         });
 
         const modal = document.getElementById('ros-modal');

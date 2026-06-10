@@ -62,6 +62,7 @@ ipcMain.on('process-excel-buffer', (event, arrayBuffer) => {
         const csvContent = XLSX.utils.sheet_to_csv(worksheet);
         ipcMain.emit('process-custom-csv-text', event, csvContent);
     } catch (e) {
+        mainWindow.webContents.send('processing-error');
         dialog.showErrorBox("Error Processing Excel File", `Failed to parse Excel Workbook: ${e.message}`);
     }
 });
@@ -111,91 +112,101 @@ ipcMain.on('process-custom-csv-text', async (event, rawContent) => {
             throw new Error("Failed to map index layout for tracking required column keys. Ensure 'Order Type' and 'Proceeds Per Share' are included.");
         }
 
-        const finalCompiledRecords = [];
-        mainWindow.webContents.send('status-update', "Connecting to live ECB exchange rate feed...");
-
+        const rowsToProcess = [];
         for (let i = headerIndex + 1; i < freshLines.length; i++) {
             if (!freshLines[i]) continue;
             let columns = parseCSVLine(freshLines[i], separator);
             const recordTypeVal = columns[idxRecType] ? columns[idxRecType].toLowerCase().trim() : '';
-
-            if (recordTypeVal === "summary" || recordTypeVal.includes("record type") || !recordTypeVal) {
-                continue; 
-            }
-
             if (recordTypeVal.includes("sell")) {
-                const dateAcquired = columns[idxDateAcq] ? columns[idxDateAcq].trim() : '';
-                const dateSold = columns[idxDateSold] ? columns[idxDateSold].trim() : '';
-                if (!dateAcquired || !dateSold) continue;
-
-                const fxRateVest = await fetchExchangeRate(dateAcquired);
-                const fxRateSale = await fetchExchangeRate(dateSold);
-                const costBaseUsd = cleanValue(columns[idxCostBasis]);
-                const proceedsUsd = cleanValue(columns[idxProceeds]);
-                const salePricePriceUsd = cleanValue(columns[idxProceedsShare]);
-                const qty = parseInt(columns[idxQty]) || 0;
-
-                // Derives individual vest unit value in USD base
-                const vestPricePerShareUsd = qty > 0 ? (costBaseUsd / qty) : 0;
-
-                const costBaseEur = costBaseUsd * fxRateVest;
-                const proceedsEur = proceedsUsd * fxRateSale;
-                const gainEur = proceedsEur - costBaseEur;
-                const rawOrderType = columns[idxOrderType] ? columns[idxOrderType].trim() : '';
-                
-                let planLabel = "RSU";
-                let saleContext = "Manual Sale";
-
-                if (rawOrderType === "RS STC") {
-                    planLabel = "RSU";
-                    saleContext = "Sell to Cover (Tax)";
-                } else if (rawOrderType === "Sell Restricted Stock") {
-                    planLabel = "RSU";
-                    saleContext = "Manual Sale";
-                } else if (rawOrderType === "ESPP STC") {
-                    planLabel = "ESPP";
-                    saleContext = "Sell to Cover (Tax)";
-                } else if (rawOrderType === "Sell ESPP") {
-                    planLabel = "ESPP";
-                    saleContext = "Manual Sale";
-                } else {
-                    planLabel = rawOrderType.toUpperCase().includes("ESPP") ? "ESPP" : "RSU";
-                    saleContext = rawOrderType.toUpperCase().includes("STC") ? "Sell to Cover (Tax)" : "Manual Sale";
-                }
-
-                finalCompiledRecords.push({
-                    date: dateSold, 
-                    type: planLabel,          
-                    context: saleContext,     
-                    qty: qty,
-                    vestPriceUsd: vestPricePerShareUsd.toFixed(2),
-                    salePriceUsd: salePricePriceUsd.toFixed(2),
-                    costBaseEur: costBaseEur.toFixed(2), 
-                    fxVest: fxRateVest.toFixed(4),
-                    proceedsEur: proceedsEur.toFixed(2), 
-                    fxSale: fxRateSale.toFixed(4),
-                    gainEur: gainEur.toFixed(2)
-                });
+                rowsToProcess.push(columns);
             }
         }
 
-        if (finalCompiledRecords.length === 0) {
-            dialog.showErrorBox("No Sale Records Tracked", "No rows matching 'Sell' were discovered.");
-            return;
+        if (rowsToProcess.length === 0) {
+            throw new Error("No rows matching 'Sell' were discovered.");
+        }
+
+        const finalCompiledRecords = [];
+        
+        for (let i = 0; i < rowsToProcess.length; i++) {
+            const columns = rowsToProcess[i];
+            const currentProgressPercent = Math.min(95, Math.floor(((i + 1) / rowsToProcess.length) * 90) + 5);
+
+            mainWindow.webContents.send('progress-tick', {
+                title: `Processing lot ${i + 1} of ${rowsToProcess.length}...`,
+                details: `Querying ECB Exchange indices for sales date: ${columns[idxDateSold] || 'Unknown'}`,
+                percent: currentProgressPercent
+            });
+
+            const dateAcquired = columns[idxDateAcq] ? columns[idxDateAcq].trim() : '';
+            const dateSold = columns[idxDateSold] ? columns[idxDateSold].trim() : '';
+            if (!dateAcquired || !dateSold) continue;
+
+            const fxRateVest = await fetchExchangeRate(dateAcquired);
+            const fxRateSale = await fetchExchangeRate(dateSold);
+            
+            const costBaseUsd = cleanValue(columns[idxCostBasis]);
+            const proceedsUsd = cleanValue(columns[idxProceeds]);
+            const salePricePriceUsd = cleanValue(columns[idxProceedsShare]);
+            const qty = parseInt(columns[idxQty]) || 0;
+
+            const vestPricePerShareUsd = qty > 0 ? (costBaseUsd / qty) : 0;
+            const costBaseEur = costBaseUsd * fxRateVest;
+            const proceedsEur = proceedsUsd * fxRateSale;
+            const gainEur = proceedsEur - costBaseEur;
+            const rawOrderType = columns[idxOrderType] ? columns[idxOrderType].trim() : '';
+            
+            let planLabel = "RSU";
+            let saleContext = "Manual Sale";
+
+            if (rawOrderType === "RS STC") {
+                planLabel = "RSU";
+                saleContext = "Sell to Cover (Tax)";
+            } else if (rawOrderType === "Sell Restricted Stock") {
+                planLabel = "RSU";
+                saleContext = "Manual Sale";
+            } else if (rawOrderType === "ESPP STC") {
+                planLabel = "ESPP";
+                saleContext = "Sell to Cover (Tax)";
+            } else if (rawOrderType === "Sell ESPP") {
+                planLabel = "ESPP";
+                saleContext = "Manual Sale";
+            } else {
+                planLabel = rawOrderType.toUpperCase().includes("ESPP") ? "ESPP" : "RSU";
+                saleContext = rawOrderType.toUpperCase().includes("STC") ? "Sell to Cover (Tax)" : "Manual Sale";
+            }
+
+            finalCompiledRecords.push({
+                date: dateSold, 
+                type: planLabel,          
+                context: saleContext,     
+                qty: qty,
+                vestPriceUsd: vestPricePerShareUsd.toFixed(2),
+                salePriceUsd: salePricePriceUsd.toFixed(2),
+                costBaseEur: costBaseEur.toFixed(2), 
+                fxVest: fxRateVest.toFixed(4),
+                proceedsEur: proceedsEur.toFixed(2), 
+                fxSale: fxRateSale.toFixed(4),
+                gainEur: gainEur.toFixed(2)
+            });
         }
 
         currentCalculatedRecords = finalCompiledRecords;
         computeTotalsAndRender();
+        
+        mainWindow.webContents.send('progress-tick', { title: "Rendering calculations...", details: "Building ledger map matrix structures...", percent: 100 });
         dialog.showMessageBox({ type: 'info', message: `Success! Imported ${finalCompiledRecords.length} unique sales lots.` });
 
     } catch (e) {
+        mainWindow.webContents.send('processing-error');
         dialog.showErrorBox("Error Processing File Layout", `Error details: ${e.message}`);
     }
 });
 
 function createWindow() {
     mainWindow = new BrowserWindow({
-        show: false,
+        show: false,                 
+        backgroundColor: '#0a1120',  
         resizable: true,
         autoHideMenuBar: true, 
         webPreferences: { 
@@ -203,9 +214,13 @@ function createWindow() {
             contextIsolation: false 
         }
     });
-    mainWindow.maximize(); 
-    mainWindow.show(); 
+
     mainWindow.loadFile('index.html');
+
+    mainWindow.once('ready-to-show', () => {
+        mainWindow.maximize(); 
+        mainWindow.show();
+    });
 }
 
 function computeTotalsAndRender() {
