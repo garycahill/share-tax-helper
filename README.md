@@ -8,7 +8,7 @@ Application to simplify gathering the required data for submitting your annual *
 
 Download the ready-to-run installers directly from Google drive. 
 
-* **Windows Installer:** [Download Share Tax Helper Setup 1.0.0 (.exe)](https://drive.google.com/file/d/1P7beaA8FRV47QFWY3SvCG45rx1YIMMcN/view?usp=sharing)
+* **Windows Installer:** [Download Share Tax Helper Setup 1.0.0 (.exe)](https://drive.google.com/file/d/1T3QWAnz_Ka1mhv8XZ9PGKe6geOvoI3S1/view?usp=sharing)
 * **macOS Installer:** ⏳ *Coming Soon (Native Mac build pipeline is currently being established).*
 
 *Note: On launch, users must review and accept the mandatory legal liability disclaimer module before processing any data spreadsheets.*
