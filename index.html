@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Share Tax Helper (Ireland)</title>
+    <style>
+        :root {
+            --bg-main: #0a1120;
+            --bg-card: #141f36;
+            --accent: #00ed64;
+            --accent-hover: #00c653;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #24334d;
+            --danger: #ff4a4a;
+        }
+        html, body { background-color: var(--bg-main); margin: 0; padding: 0; overflow: hidden; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 25px; color: var(--text-main); box-sizing: border-box; height: 100vh; }
+        
+        .dashboard-main { max-width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 15px; height: calc(100vh - 50px); }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 15px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; }
+        .tile { background: var(--bg-card); border: 1px solid var(--border); padding: 18px; border-radius: 12px; position: relative; }
+        .tile h4 { margin: 0 0 8px 0; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.75px; }
+        .tile .val { font-size: 28px; font-weight: 700; color: var(--text-main); }
+        .tile .sub { font-size: 11px; color: var(--accent); margin-top: 4px; font-weight: 500; }
+        
+        .instructions-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; }
+        .instructions-toggle-bar { background: #1e293b; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; border-bottom: 1px solid var(--border); font-weight: bold; color: var(--accent); font-size: 12px; letter-spacing: 0.5px; text-transform: uppercase; }
+        .instructions-inner-content { padding: 20px; font-size: 13.5px; line-height: 1.55; box-sizing: border-box; }
+        .instructions-panel.collapsed .instructions-inner-content { display: none; }
+        .instructions-panel ol { margin: 5px 0 0 0; padding-left: 18px; font-size: 13px; color: var(--text-main); }
+        .instructions-panel li { margin-bottom: 8px; }
+        
+        .flex-drop-row { display: flex; gap: 20px; margin-top: 15px; align-items: center; }
+        .drop-zone { flex: 1; border: 2px dashed var(--border); background: rgba(20, 31, 54, 0.2); text-align: center; padding: 20px; border-radius: 8px; cursor: pointer; color: var(--text-muted); font-size: 13px; font-weight: 500; transition: all 0.2s; }
+        .drop-zone.hover { border-color: var(--accent); background: rgba(0, 237, 100, 0.05); color: var(--accent); }
+        
+        .table-scroll-container { flex: 1; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px; background: rgba(10, 17, 32, 0.5); position: relative; }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+        td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border); }
+        tr:hover td { background: rgba(255,255,255,0.01); }
+        th { background-color: #17233d !important; color: var(--text-muted); font-weight: 600; font-size: 11px; text-transform: uppercase; position: sticky !important; top: 0 !important; z-index: 20 !important; padding: 12px 16px; text-align: left; border-bottom: 2px solid var(--border); }
+        
+        .badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; display: inline-block; }
+        .summary-box { background: #0f172a; padding: 15px 20px; border-radius: 8px; font-weight: 700; font-size: 15px; display: flex; justify-content: space-between; border: 1px solid var(--border); border-left: 4px solid var(--accent); }
+        
+        .btn { background: #2563eb; color: #fff; border: none; padding: 11px 22px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 13px; transition: background 0.15s; }
+        .btn:hover { background: #1d4ed8; }
+        .btn-reset { background: transparent; border: 1px solid var(--danger); color: var(--danger); padding: 18px 25px; font-weight: bold; border-radius: 8px; cursor: pointer; font-size: 13px; white-space: nowrap; height: 100%; }
+        .btn-reset:hover { background: rgba(255, 74, 74, 0.1); }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(2, 6, 17, 0.85); z-index: 9999999; justify-content: center; align-items: center; padding: 40px; box-sizing: border-box; }
+        .modal-canvas { background: #f3f4f6; color: #1f2937; width: 100%; max-width: 950px; height: 100%; max-height: 850px; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.7); border: 4px solid #111827; }
+        .modal-header { background: #111827; color: #fff; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; }
+        .modal-scroll { flex: 1; overflow-y: auto; padding: 30px; box-sizing: border-box; font-family: Arial, sans-serif; }
+        .ros-section-box { border: 2px solid #000; background: #fff; padding: 20px; margin-bottom: 25px; position: relative; }
+        .ros-header-banner { background: #000; color: #fff; padding: 6px 12px; font-weight: bold; font-size: 14px; text-transform: uppercase; margin: -20px -20px 20px -20px; display: flex; justify-content: space-between; }
+        .ros-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed #ccc; font-size: 13px; }
+        .ros-row:last-child { border-bottom: none; }
+        .ros-input-box { background: #fff; border: 1px solid #4b5563; padding: 6px 10px; width: 180px; text-align: right; font-family: monospace; font-weight: bold; font-size: 14px; border-radius: 4px; color: #000; }
+        .ros-label { font-weight: bold; max-width: 65%; color: #111827; }
+        .ros-number-tag { color: #d97706; font-weight: bold; margin-right: 8px; }
+
+        .disclaimer-overlay { display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #020617; z-index: 99999999; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
+        .disclaimer-card { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-main); width: 100%; max-width: 620px; padding: 35px; border-radius: 12px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); border-top: 4px solid var(--danger); }
+        .disclaimer-text { font-size: 14px; line-height: 1.6; color: #cbd5e1; margin: 15px 0 25px 0; }
+        .disclaimer-text p { margin: 0 0 12px 0; }
+    </style>
+</head>
+<body>
+
+    <div class="disclaimer-overlay" id="disclaimer-modal">
+        <div class="disclaimer-card">
+            <h2 style="margin: 0; font-size: 20px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 10px;">
+                ⚠️ Legal Disclaimer & Terms of Use
+            </h2>
+            <div class="disclaimer-text">
+                <p><strong>Please read carefully before proceeding. This tool is shared under the following conditions:</strong></p>
+                <p>This software utility tool is provided entirely <strong>"as-is"</strong>, without warranties or guarantees of any kind, explicit or implied, regarding its calculation precision, financial completeness, or compliance with current Irish Revenue tax legislation.</p>
+                <p>Tax regulations surrounding stock options, RSUs, and ESPP calculations are complex and subject to change. The output generated by this application is for informational tracking and guide mockup reference purposes only and does not constitute formal tax, legal, or financial advice.</p>
+                <p>You remain solely responsible for the absolute accuracy of your own tax declarations filed to Revenue. It is highly recommended that you consult a certified, independent <strong>qualified tax advisor or accountant</strong> to review your specific financial parameters before submitting your Form 11 return layout details.</p>
+            </div>
+            <button class="btn" style="background: var(--danger); color: white; width: 100%; padding: 14px; font-size: 14px;" id="accept-disclaimer-btn">I Accept & Understand the Terms</button>
+        </div>
+    </div>
+
+    <div class="dashboard-main">
+        <div class="header">
+            <div>
+                <h1 style="margin: 0; font-size: 24px; font-weight: 700;">Share Tax Helper</h1>
+                <p style="margin: 4px 0 0 0; color: var(--text-muted); font-size: 13px;">Calculate your Irish Capital Gains Tax (CGT) for Revenue</p>
+            </div>
+            <div>
+                <button class="btn" style="background: #10b981;" id="preview-ros-btn">📊 Open ROS Form 11 Data Guide</button>
+            </div>
+        </div>
+
+        <div class="grid-3">
+            <div class="tile">
+                <h4>MongoDB Stock (MDB)</h4>
+                <div class="val">MDB : NASDAQ</div>
+                <div class="sub" id="live-price-sub">Current Price: Loading...</div>
+            </div>
+            <div class="tile">
+                <h4>Total Capital Gain (EUR)</h4>
+                <div class="val" id="total-gains-metric">€0.00</div>
+                <div class="sub" style="color: var(--text-muted);">Your total profit converted to EUR</div>
+            </div>
+            <div class="tile">
+                <h4>Estimated Tax Owed (33%)</h4>
+                <div class="val" id="tax-due-metric" style="color: var(--accent);">€0.00</div>
+                <div class="sub" style="color: var(--text-muted);">Calculated after your €1,270 tax-free allowance</div>
+            </div>
+        </div>
+
+        <div class="instructions-panel" id="macro-instructions-panel">
+            <div class="instructions-toggle-bar" id="macro-toggle-trigger">
+                <span id="toggle-banner-title">📋 How to get your data from E*TRADE</span>
+                <span id="toggle-banner-icon">▼ Collapse Instructions</span>
+            </div>
+            <div class="instructions-inner-content">
+                <p style="margin: 0 0 12px 0; font-size: 13.5px; color: var(--text-muted);">
+                    To generate your Irish Revenue Capital Gains compliant output, the system parses the lot specifics from your historical spreadsheet ledger. Follow the steps below to export the file:
+                </p>
+                <ol>
+                    <li>Log into your E*TRADE account profile in a web browser.</li>
+                    <li>Click on <strong>"Stock Plan (MDB)"</strong> then navigate to <strong>My Account > Gains & Losses</strong> tab.</li>
+                    <li>Filter by your target <strong>Tax Year</strong> dropdown selection and hit <strong>Apply</strong>.</li>
+                    <li>Locate the <strong>Download</strong> link interface dropdown situated on the right side.</li>
+                    <li>Select <strong>Download Expanded</strong> <span style="color: var(--accent); font-weight:bold;">(Crucial: do not select collapsed!)</span>.</li>
+                </ol>
+                
+                <div class="flex-drop-row">
+                    <div id="drop-zone" class="drop-zone">
+                        Drag & Drop your 'Expanded' file here (.csv or .xlsx), or <span style="color: var(--accent); text-decoration: underline; font-weight: 600;">click to browse</span>
+                    </div>
+                    <input type="file" id="file-input-fallback" accept=".csv, .xlsx, .xls" style="display: none;" />
+                    
+                    <button class="btn-reset" id="reset-layout-btn">Reset & Clear Layout</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="tile" style="flex: 1; min-height: 0; display: flex; flex-direction: column; padding-top: 10px;">
+            <h4 style="margin-bottom:10px;">Your Capital Gains Breakdown</h4>
+            <div class="table-scroll-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th title="The official date the trade was executed. Determines which specific Irish tax filing year this transaction falls under.">Date Sold</th>
+                            <th title="Differentiates automatic tax withholding batches ('Sell to Cover') from shares you chose to hold and liquidate manually ('Manual Sale').">Sale Context</th>
+                            <th title="The number of shares traded in this lot execution.">Shares Sold</th>
+                            <th title="The primary value per individual unit share tracking point on original vesting day in US Dollars.">Vest Price ($)</th>
+                            <th title="The final execution price per individual share traded, listed in US Dollars.">Sale Price ($)</th>
+                            <th title="What the total batch of shares was worth in Euros on the day they originally vested to you.">Original Cost (€)</th>
+                            <th title="The official daily historical European Central Bank (ECB) exchange rate used to convert your initial USD vesting cost into Euros.">Vest FX Rate</th>
+                            <th title="The total gross funds received from this trade converted completely into Euros.">Sale Proceeds (€)</th>
+                            <th title="The official daily historical European Central Bank (ECB) exchange rate on the day of the sale.">Sale FX Rate</th>
+                            <th title="Your Euro profit or loss (Proceeds minus Original Cost) using precise daily historical mapping.">Profit / Loss (€)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ledger-body">
+                        <tr><td colspan="10" style="text-align: center; color: var(--text-muted); padding: 30px;">System ready. Use the upload panel above to process your 'Expanded' data spreadsheet.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="summary-box">
+                <span>Total Calculated Profit: <span id="summary-gains-text">€0.00</span></span>
+                <span>Annual Irish Tax-Free Limit: <span style="color: var(--accent);">€1,270.00</span></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="ros-modal">
+        <div class="modal-canvas">
+            <div class="modal-header">
+                <span style="font-weight: bold; font-size: 15px;">Official Revenue ROS Form 11 Input Summary Mockup</span>
+                <button class="btn" style="background:#ef4444; color:#fff; padding:6px 14px; margin:0;" id="close-modal-btn">✕ Close Preview</button>
+            </div>
+            <div class="modal-scroll">
+                <p style="margin-top:0; font-size:13px; color:#4b5563; line-height:1.5;">
+                    Open your <strong>Form 11 Tax Return</strong> inside the ROS Portal, navigate to the panels below, and transfer these computed totals into the designated input fields. All other unlisted fields should remain left blank.
+                </p>
+
+                <div class="ros-section-box">
+                    <div class="ros-header-banner">
+                        <span>PANEL L - CAPITAL GAINS [801 - 826]</span>
+                        <span>Page 30-31</span>
+                    </div>
+                    <div class="ros-row">
+                        <div class="ros-label"><span class="ros-number-tag">801(a)</span>Shares / Securities - Quoted (No. of Disposals)</div>
+                        <input type="text" class="ros-input-box" id="ros-801-disposals" value="0" readonly>
+                    </div>
+                    <div class="ros-row">
+                        <div class="ros-label"><span class="ros-number-tag">801(a)</span>Shares / Securities - Quoted (Aggregate Consideration)</div>
+                        <input type="text" class="ros-input-box" id="ros-801-consideration" value="0.00" readonly>
+                    </div>
+                    <div class="ros-row" style="background: #fcf8e3;">
+                        <div class="ros-label"><span class="ros-number-tag">810</span>Chargeable gains in the year before S. 604A relief</div>
+                        <input type="text" class="ros-input-box" id="ros-810-gains" value="0.00" readonly>
+                    </div>
+                    <div class="ros-row">
+                        <div class="ros-label"><span class="ros-number-tag">818</span>Personal Exemption (Max €1,270 allowance)</div>
+                        <input type="text" class="ros-input-box" id="ros-818-exemption" value="1,270.00" readonly>
+                    </div>
+                    <div class="ros-row" style="background: #e0f2fe;">
+                        <div class="ros-label"><span class="ros-number-tag">819</span>Net Chargeable Gain (Total Taxable Profit)</div>
+                        <input type="text" class="ros-input-box" id="ros-819-netgain" value="0.00" readonly>
+                    </div>
+                    <div class="ros-row">
+                        <div class="ros-label"><span class="ros-number-tag">824(a)</span>Gains accrued 1 Jan - 30 Nov (Charged at 33%)</div>
+                        <input type="text" class="ros-input-box" id="ros-824-gains" value="0.00" readonly>
+                    </div>
+                </div>
+
+                <div class="ros-section-box">
+                    <div class="ros-header-banner">
+                        <span>PANEL P - SELF-ASSESSMENT MADE UNDER CHAPTER 4 OF PART 41A</span>
+                        <span>Page 35</span>
+                    </div>
+                    <div class="ros-row">
+                        <div class="ros-header-banner" style="background:#4b5563; margin:0 -20px 10px -20px; font-size:11px;">
+                            <span>937 - Self-Assessment – Capital Gains Tax</span>
+                        </div>
+                    </div>
+                    <div class="ros-row">
+                        <div class="ros-label"><span class="ros-number-tag">937(a)</span>Amount of chargeable gains arising for this period</div>
+                        <input type="text" class="ros-input-box" id="ros-937-arising" value="0.00" readonly>
+                    </div>
+                    <div class="ros-row" style="background: #dcfce7;">
+                        <div class="ros-label"><span class="ros-number-tag">937(b)</span>Amount of tax chargeable for this period (33% CGT Due)</div>
+                        <input type="text" class="ros-input-box" id="ros-937-chargeable" value="0.00" readonly>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+
+        let globalTotalsCache = { disposposals: 0, consideration: "0.00", gains: "0.00", netTaxable: "0.00", taxDue: "0.00" };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            ipcRenderer.send('get-live-stock-price');
+        });
+
+        ipcRenderer.on('live-stock-price-response', (event, livePrice) => {
+            const priceSub = document.getElementById('live-price-sub');
+            if (livePrice === "UNAVAILABLE") {
+                priceSub.innerHTML = `<span class="badge" style="background: rgba(255, 74, 74, 0.15); color: var(--danger); padding: 2px 8px; margin: 0;">⚠️ Price Feed Offline</span>`;
+            } else {
+                priceSub.innerText = `Asset Reference Price: ~$${livePrice} USD`;
+            }
+        });
+
+        document.getElementById('accept-disclaimer-btn').addEventListener('click', () => {
+            document.getElementById('disclaimer-modal').style.display = 'none';
+        });
+
+        const macroPanel = document.getElementById('macro-instructions-panel');
+        const macroTrigger = document.getElementById('macro-toggle-trigger');
+        const macroIcon = document.getElementById('toggle-banner-icon');
+
+        macroTrigger.addEventListener('click', () => {
+            macroPanel.classList.toggle('collapsed');
+            if (macroPanel.classList.contains('collapsed')) {
+                macroIcon.innerText = "▲ Expand Instructions & Upload Box";
+            } else {
+                macroIcon.innerText = "▼ Collapse Instructions";
+            }
+        });
+
+        const dropZone = document.getElementById('drop-zone');
+        const fileInputFallback = document.getElementById('file-input-fallback');
+        dropZone.addEventListener('click', () => fileInputFallback.click());
+        fileInputFallback.addEventListener('change', (e) => { if (e.target.files.length > 0) processFileObject(e.target.files[0]); });
+
+        window.addEventListener('dragover', (e) => { e.preventDefault(); }, false);
+        window.addEventListener('drop', (e) => { e.preventDefault(); }, false);
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); dropZone.classList.add('hover'); });
+        dropZone.addEventListener('dragleave', (e) => { e.preventDefault(); e.stopPropagation(); dropZone.classList.remove('hover'); });
+        dropZone.addEventListener('drop', (e) => { e.preventDefault(); e.stopPropagation(); dropZone.classList.remove('hover'); if (e.dataTransfer && e.dataTransfer.files.length > 0) processFileObject(e.dataTransfer.files[0]); });
+        
+        function processFileObject(file) {
+            const reader = new FileReader();
+            if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+                reader.onload = (event) => { ipcRenderer.send('process-excel-buffer', event.target.result); };
+                reader.readAsArrayBuffer(file);
+            } else {
+                reader.onload = (event) => { ipcRenderer.send('process-custom-csv-text', event.target.result); };
+                reader.readAsText(file);
+            }
+        }
+
+        document.getElementById('reset-layout-btn').addEventListener('click', () => {
+            globalTotalsCache = { disposposals: 0, consideration: "0.00", gains: "0.00", netTaxable: "0.00", taxDue: "0.00" };
+            document.getElementById('total-gains-metric').innerText = "€0.00";
+            document.getElementById('summary-gains-text').innerText = "€0.00";
+            document.getElementById('tax-due-metric').innerText = "€0.00";
+            document.getElementById('ledger-body').innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--text-muted); padding: 30px;">System ready. Use the upload panel above to process your 'Expanded' data spreadsheet.</td></tr>`;
+            
+            macroPanel.classList.remove('collapsed');
+            macroIcon.innerText = "▼ Collapse Instructions";
+            fileInputFallback.value = ""; 
+        });
+
+        ipcRenderer.on('status-update', (event, message) => {
+            document.getElementById('ledger-body').innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--text-muted); padding: 30px;">⏳ ${message}</td></tr>`;
+        });
+
+        ipcRenderer.on('render-dashboard', (event, payload) => {
+            const tbody = document.getElementById('ledger-body');
+            tbody.innerHTML = '';
+
+            payload.records.forEach(row => {
+                const isGain = parseFloat(row.gainEur) >= 0;
+                const textStyle = isGain ? 'color: var(--accent); font-weight:600;' : 'color: var(--danger); font-weight:600;';
+                const prefix = isGain ? '+' : '';
+                const planBadgeClass = row.type === 'ESPP' ? 'background: #0070f3; color: white;' : 'background: rgba(0, 237, 100, 0.12); color: var(--accent);';
+                const contextBadgeClass = row.context.includes('Cover') ? 'background: rgba(255, 165, 0, 0.15); color: #ffa500;' : 'background: rgba(255,255,255,0.08); color: var(--text-muted);';
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${row.date}</strong></td>
+                        <td>
+                            <span class="badge" style="${planBadgeClass}">${row.type}</span>
+                            <span class="badge" style="font-size:10px; ${contextBadgeClass}">${row.context}</span>
+                        </td>
+                        <td>${row.qty}</td>
+                        <td>$${row.vestPriceUsd}</td>
+                        <td>$${row.salePriceUsd}</td>
+                        <td>€${row.costBaseEur}</td>
+                        <td>${row.fxVest}</td>
+                        <td>€${row.proceedsEur}</td>
+                        <td>${row.fxSale}</td>
+                        <td style="${textStyle}">${prefix}€${row.gainEur}</td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('total-gains-metric').innerText = `€${payload.totalGains}`;
+            document.getElementById('summary-gains-text').innerText = `€${payload.totalGains}`;
+            document.getElementById('tax-due-metric').innerText = `€${payload.taxDue}`;
+
+            globalTotalsCache = {
+                disposals: payload.totalDisposals,
+                consideration: payload.totalConsideration,
+                gains: payload.totalGains,
+                netTaxable: Math.max(0, parseFloat(payload.totalGains) - 1270).toFixed(2),
+                taxDue: payload.taxDue
+            };
+            
+            macroPanel.classList.add('collapsed');
+            macroIcon.innerText = "▲ Expand Instructions & Upload Box";
+        });
+
+        const modal = document.getElementById('ros-modal');
+        document.getElementById('preview-ros-btn').addEventListener('click', () => {
+            document.getElementById('ros-801-disposals').value = globalTotalsCache.disposals;
+            document.getElementById('ros-801-consideration').value = "€" + globalTotalsCache.consideration;
+            document.getElementById('ros-810-gains').value = "€" + globalTotalsCache.gains;
+            document.getElementById('ros-819-netgain').value = "€" + globalTotalsCache.netTaxable;
+            document.getElementById('ros-824-gains').value = "€" + globalTotalsCache.netTaxable;
+            document.getElementById('ros-937-arising').value = "€" + globalTotalsCache.netTaxable;
+            document.getElementById('ros-937-chargeable').value = "€" + globalTotalsCache.taxDue;
+            modal.style.display = 'flex';
+        });
+
+        document.getElementById('close-modal-btn').addEventListener('click', () => { modal.style.display = 'none'; });
+    </script>
+</body>
+</html>
