@@ -1,6 +1,6 @@
 {
   "name": "ie-cgt-tracker",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Irish Revenue CGT Calculator for E*TRADE",
   "main": "main.js",
   "scripts": {
