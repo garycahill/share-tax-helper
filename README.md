@@ -20,14 +20,6 @@ Download the ready-to-run installers directly from our shared team workspace.
 
 ---
 
-## Key Features
-* **Automatic Tax Window Separation:** Uses deterministic file signatures to automatically distinguish `Sell to Cover (Tax)` actions from user-initiated `Manual Sales`.
-* **Historical Exchange Rate Integration:** Pulls precise historical exchange rates on the exact dates of both vesting and liquidation via the European Central Bank (ECB) feed.
-* **Anti-Encroachment Layout UI:** Designed for varying laptop display matrices with an adjustable, collapsible instructional interface panel to maximize screen layout space.
-* **ROS Form 11 Data Guide Mockup:** Features a click-to-open summary canvas mapping calculations directly to the layout numbers of **Panel L (Capital Gains)** and **Panel P (Self-Assessment)** inside the Revenue Online Service portal.
-
----
-
 ## How to Get Your Data from E*TRADE
 
 To compute compliant capital gains, the app requires granular, row-by-row cost basis specification from your statement profile. Follow these steps to pull your file:
