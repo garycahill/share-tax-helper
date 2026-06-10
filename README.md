@@ -1,17 +1,17 @@
 # Share Tax Helper (Ireland Form 11 Compliance)
 
-Desktop Electron application engineered to convert historical multi-lot stock plan transactions (RSU / ESPP) into precise Euro calculations for Irish Revenue compliance. It matches daily transactional records with the live historical exchange rate feeds of the European Central Bank (ECB) and outputs a visual field mapping guide designed for the **ROS Form 11** portal.
+An offline-first desktop Electron application engineered to convert historical multi-lot MongoDB (MDB) stock plan transactions (RSU / ESPP) into precise Euro calculations for Irish Revenue compliance. It matches daily transactional records with the live historical exchange rate feeds of the European Central Bank (ECB) and outputs a visual field mapping guide designed for the **ROS Form 11** portal.
 
 ---
 
 ## 📥 Direct Downloads
 
-Skip the terminal and configuration steps. Download the ready-to-run installer for your operating system directly from our secure build pipeline:
+Download the ready-to-run installers directly from our shared team workspace. 
 
-[![Download for Windows](https://img.shields.io/badge/Download-Windows__EXE-0078d7?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/garycahill/share-tax-helper/releases/download/v1.0.0/Share+Tax+Helper+Setup+1.0.0.exe)
-[![Download for macOS](https://img.shields.io/badge/Download-macOS__DMG-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/garycahill/share-tax-helper/releases/download/v1.0.0/Share+Tax+Helper-1.0.0.dmg)
+* **Windows Installer:** [Download Share Tax Helper Setup 1.0.0 (.exe)](https://drive.google.com/file/d/1ugWMcqaIqtJso6B7DMyEH2LBZF7xmKS1/view?usp=sharing)
+* **macOS Installer:** ⏳ *Coming Soon (Native Mac build pipeline is currently being established).*
 
-*Note: On launch, you must review and accept the legal liability disclaimer module before processing any data files.*
+*Note: On launch, users must review and accept the mandatory legal liability disclaimer module before processing any data spreadsheets.*
 
 ---
 
@@ -33,7 +33,7 @@ Skip the terminal and configuration steps. Download the ready-to-run installer f
 To compute compliant capital gains, the app requires granular, row-by-row cost basis specification from your statement profile. Follow these steps to pull your file:
 
 1. Log into your E*TRADE account profile in a web browser.
-2. Click on your corporate equity dashboard then navigate to **My Account > Gains & Losses** tab.
+2. Click on **"Stock Plan (MDB)"** then navigate to **My Account > Gains & Losses** tab.
 3. Filter by your target **Tax Year** dropdown selection and hit **Apply**.
 4. Locate the **Download** link interface dropdown situated on the right side.
 5. Select **Download Expanded** *(Crucial: do not select collapsed! The system needs the underlying individual share lot records to process calculations).*
