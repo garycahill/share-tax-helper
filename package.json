@@ -10,6 +10,9 @@
   "build": {
     "appId": "com.internal.taxhelper",
     "productName": "Share Tax Helper",
+    "directories": {
+      "output": "build-out"
+    },
     "files": [
       "main.js",
       "index.html",
